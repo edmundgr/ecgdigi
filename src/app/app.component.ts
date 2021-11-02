@@ -29,31 +29,52 @@ export class AppComponent {
   // latest snapshot
   public showWebcam = false;
   public allowCameraSwitch = false;
-  public videoOptions: MediaTrackConstraints = {
-    // width: {ideal: 1024},
-    // height: {ideal: 576}
-  };
-  public ocrResult = '';
+  public multipleWebcamsAvailable = false;
+  public deviceId: string = "";
+  public facingMode: string = 'environment';
+  public errors: WebcamInitError[] = [];
 
-  public webcamImage: WebcamImage = new WebcamImage('', 'image/*', new ImageData(640, 480));
+  public webcamImage: WebcamImage = null as any;
 
+  
   public greyImageUrl: string = '';
   public greyImageWidth: number = 0;
   public greyImageHeight: number = 0;
 
-  public edgyImage: Image.Image = new Image.Image(640,480);
-
-  public edgyUrl: string = '';
+  public ocrResult = '';
 
   // webcam snapshot trigger
   private trigger: Subject<void> = new Subject<void>();
+
+  private nextWebcam: Subject<boolean | string> = new Subject<boolean | string>();
+
+  public ngOnInit(): void {
+    WebcamUtil.getAvailableVideoInputs()
+      .then((mediaDevices: MediaDeviceInfo[]) => {
+        this.multipleWebcamsAvailable = mediaDevices && mediaDevices.length > 1;
+      });
+  }
+
+  public triggerSnapshot(): void {
+    this.trigger.next();
+  }
 
   public toggleWebcam(): void {
     this.showWebcam = !this.showWebcam;
   }
 
-  public triggerSnapshot(): void {
-    this.trigger.next();
+  handleInitError(error: WebcamInitError): void {
+    if (error.mediaStreamError && error.mediaStreamError.name === 'NotAllowedError') {
+      console.warn('Camera access was not allowed by user!');
+    }
+    this.errors.push(error);
+  }
+
+  public showNextWebcam(directionOrDeviceId: boolean | string): void {
+    // true => move forward through devices
+    // false => move backwards through devices
+    // string => move to device with given deviceId
+    this.nextWebcam.next(directionOrDeviceId);
   }
 
   public handleImage(webcamImage: WebcamImage): void {
@@ -61,8 +82,26 @@ export class AppComponent {
     this.webcamImage = webcamImage;
   }
 
+  public cameraWasSwitched(deviceId: string): void {
+    console.log('active device: ' + deviceId);
+    this.deviceId = deviceId;
+  }
+
   public get triggerObservable(): Observable<void> {
     return this.trigger.asObservable();
+  }
+
+  public get nextWebcamObservable(): Observable<boolean | string> {
+    return this.nextWebcam.asObservable();
+  }
+
+  public get videoOptions(): MediaTrackConstraints {
+    const result: MediaTrackConstraints = {};
+    if (this.facingMode && this.facingMode !== '') {
+      result.facingMode = { ideal: this.facingMode };
+    }
+
+    return result;
   }
 
   public testOcr(): void {
@@ -94,30 +133,4 @@ export class AppComponent {
       });
   }
 
-  //public convertDataUrlToUint8ClampedArray(dataUrl: string): Uint8ClampedArray {
-  //  const arr = dataUrl.split(',');
-  //  const bstr = atob(arr[1]);
-  //  let n = bstr.length;
-  //  const u8arr = new Uint8Array(n);
-
-  //  while (n--) {
-  //    u8arr[n] = bstr.charCodeAt(n);
-  //  }
-
-  //  return new Uint8ClampedArray(u8arr);
-  //}
-
-  //public doEdgeDetection(): void {
-  //  var self = this;
-    
-  //  wasm.default('./edge_detection_wasm_bg.wasm')
-  //    .then(function (any) {
-  //      var edgy = wasm.detect(self.convertDataUrlToUint8ClampedArray(self.greyImageUrl),
-  //        self.greyImageWidth,
-  //        self.greyImageHeight,
-  //        0xFFFFFFFF, false);
-  //      self.edgyImage = new Image.Image(self.greyImageWidth, self.greyImageHeight, edgy);
-  //      self.edgyUrl = self.edgyImage.toDataURL();
-  //    });
-  //}
 }

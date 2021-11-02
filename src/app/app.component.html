@@ -342,12 +342,16 @@ forbidden except by express written permission of GE Healthcare.
 </div>
 
 <div class="content" role="main">
-  <button mat-raised-button color="primary" (click)="toggleWebcam();">Enable/Disable Webcam</button>
+  <button mat-raised-button color="primary" (click)="toggleWebcam();">Enable/Disable Camera</button>
+  <button mat-raised-button color="primary" (click)="showNextWebcam(true);" [disabled]="!multipleWebcamsAvailable">Next Camera</button>
   <div class="webcam1">
     <webcam [width]="300" [trigger]="triggerObservable" (imageCapture)="handleImage($event)" *ngIf="showWebcam"
             [allowCameraSwitch]="allowCameraSwitch"
+            [switchCamera]="nextWebcamObservable"
             [videoOptions]="videoOptions"
-            [imageQuality]="1"></webcam>
+            [imageQuality]="1"
+            (cameraSwitched)="cameraWasSwitched($event)"
+            (initError)="handleInitError($event)"></webcam>
     <div class="overlay" [hidden]="!showWebcam">
       <div class="rect"></div>
     </div>
