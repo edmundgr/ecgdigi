@@ -33,6 +33,8 @@ export class AppComponent {
   public deviceId: string = "";
   public facingMode: string = 'environment';
   public errors: WebcamInitError[] = [];
+  public captureImageData = true;
+  public imageType: string = "image/png";
 
   public webcamImage: WebcamImage = null as any;
 
@@ -100,6 +102,8 @@ export class AppComponent {
     if (this.facingMode && this.facingMode !== '') {
       result.facingMode = { ideal: this.facingMode };
     }
+    result.width = { min: 1280, ideal: 1920 };
+    result.height = { min: 720, ideal: 1080 };
 
     return result;
   }
